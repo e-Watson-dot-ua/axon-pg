@@ -8,7 +8,9 @@ import { createDb } from './index.js';
  * @param {import('./types.js').DbOptions} opts
  */
 export async function axonPg(app, opts) {
-  const db = await createDb(opts);
+  // If Axon has a logger, use it as default for the DB
+  const logger = opts.logger ?? app.log ?? undefined;
+  const db = await createDb({ ...opts, logger });
 
   app.decorate('db', db);
   app.decorateCtx('db', db);

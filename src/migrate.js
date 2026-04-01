@@ -10,11 +10,14 @@ import { trimQuery } from './utils/sql.utils.js';
  *
  * @param {import('./index.js').Db} db
  * @param {import('./types.js').MigrateOptions} opts
+ * @param {any} [log] - logger instance
  * @returns {Promise<string[]>} list of applied migration names
  */
-export async function migrate(db, opts) {
+export async function migrate(db, opts, log) {
   const dir = path.resolve(opts.dir);
   const table = opts.table ?? '_migrations';
+
+  log?.info('running migrations', { dir, table });
 
   // Ensure tracking table exists
   await db.raw(`
@@ -41,10 +44,14 @@ export async function migrate(db, opts) {
 
   for (const file of sqlFiles) {
     const name = file.replace(/\.sql$/, '');
-    if (appliedSet.has(name)) continue;
+    if (appliedSet.has(name)) {
+      log?.trace('migration already applied', { name });
+      continue;
+    }
 
     const sql = trimQuery(await fs.readFile(path.join(dir, file), 'utf8'));
 
+    log?.info('applying migration', { name });
     await db.transaction(async (tx) => {
       await tx.raw(sql);
       await tx.raw(
@@ -56,5 +63,6 @@ export async function migrate(db, opts) {
     ran.push(name);
   }
 
+  log?.info('migrations complete', { applied: ran.length, total: sqlFiles.length });
   return ran;
 }

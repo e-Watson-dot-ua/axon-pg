@@ -41,10 +41,12 @@
   },
   "peerDependencies": {
     "pg": ">=8.0.0",
-    "@e-watson/axon": ">=0.0.1"
+    "@e-watson/axon": ">=0.0.1",
+    "@e-watson/axon-logger": ">=0.0.1"
   },
   "peerDependenciesMeta": {
-    "@e-watson/axon": { "optional": true }
+    "@e-watson/axon": { "optional": true },
+    "@e-watson/axon-logger": { "optional": true }
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

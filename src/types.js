@@ -10,6 +10,7 @@
  * @property {number} [pool.max] - max pool size (default: 10)
  * @property {number} [pool.idleTimeoutMillis] - idle timeout (default: 30000)
  * @property {number} [pool.connectionTimeoutMillis] - connect timeout (default: 5000)
+ * @property {any} [logger] - logger instance (default: @e-watson/axon-logger or noop)
  */
 
 /**

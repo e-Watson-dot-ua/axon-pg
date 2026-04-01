@@ -5,9 +5,10 @@ import { PgError } from './errors/pg.error.js';
  *
  * @param {Map<string, string>} queries - loaded SQL queries
  * @param {{ query: (sql: string, params?: any[]) => Promise<any> }} executor - pool or client
+ * @param {any} [log] - logger instance
  * @returns {import('./types.js').TxClient}
  */
-export function createRunner(queries, executor) {
+export function createRunner(queries, executor, log) {
   /**
    * Look up SQL by name, throw if missing.
    * @param {string} name
@@ -29,9 +30,15 @@ export function createRunner(queries, executor) {
      */
     async query(name, params) {
       const sql = resolve(name);
+      const start = performance.now();
       try {
-        return await executor.query(sql, params);
+        const result = await executor.query(sql, params);
+        const ms = (performance.now() - start).toFixed(2);
+        log?.debug('query', { name, ms: parseFloat(ms), rows: result.rowCount ?? 0 });
+        return result;
       } catch (err) {
+        const ms = (performance.now() - start).toFixed(2);
+        log?.error('query failed', { name, ms: parseFloat(ms), error: /** @type {Error} */ (err).message });
         throw new PgError(`Query failed: "${name}"`, {
           queryName: name,
           params,
@@ -79,9 +86,16 @@ export function createRunner(queries, executor) {
      * @param {any[]} [params]
      */
     async raw(sql, params) {
+      const start = performance.now();
       try {
-        return await executor.query(sql, params);
+        const result = await executor.query(sql, params);
+        const ms = (performance.now() - start).toFixed(2);
+        const preview = sql.replace(/\s+/g, ' ').trim().slice(0, 60);
+        log?.debug('raw', { sql: preview, ms: parseFloat(ms), rows: result.rowCount ?? 0 });
+        return result;
       } catch (err) {
+        const ms = (performance.now() - start).toFixed(2);
+        log?.error('raw query failed', { ms: parseFloat(ms), error: /** @type {Error} */ (err).message });
         throw new PgError('Raw query failed', {
           cause: /** @type {Error} */ (err),
         });

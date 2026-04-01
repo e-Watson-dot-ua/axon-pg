@@ -6,7 +6,7 @@ PostgreSQL toolkit for the Axon family — SQL file loader, pool, query runner, 
 
 - **Package**: `@e-watson/axon-pg`
 - **Runtime**: Node.js >= 18, ESM-only
-- **Peer deps**: `pg` (required), `@e-watson/axon` (optional — only for plugin)
+- **Peer deps**: `pg` (required), `@e-watson/axon` (optional), `@e-watson/axon-logger` (optional)
 - **No TypeScript** — plain JS with JSDoc types (`jsconfig.json` has `checkJs: true`)
 
 ## Architecture
@@ -20,6 +20,17 @@ PostgreSQL toolkit for the Axon family — SQL file loader, pool, query runner, 
 - `src/migrate.js` — migration runner: numbered `.sql` files tracked in DB
 - `src/errors/pg.error.js` — `PgError` with query name, params, cause chain
 - `src/utils/sql.utils.js` — SQL string helpers (trim)
+- `src/utils/logger.utils.js` — resolves @e-watson/axon-logger or noop fallback
+
+## Logging
+
+Logger is threaded through pool, query runner, transactions, and migrations.
+- `debug` level: logs every query (name, elapsed ms, row count), BEGIN/COMMIT/ROLLBACK
+- `info` level: logs connect, close, migration applied, query count loaded
+- `warn` level: logs ROLLBACK, ping failures
+- `error` level: logs query failures, connection failures
+- Without `@e-watson/axon-logger`: all logging is silently skipped (noop)
+- Pass custom logger via `createDb({ logger })` or let the plugin inherit `app.log`
 
 ## How SQL files work
 

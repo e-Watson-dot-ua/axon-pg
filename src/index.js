@@ -2,6 +2,7 @@ import { Pool } from './pool.js';
 import { loadQueries } from './query.loader.js';
 import { createRunner } from './query.runner.js';
 import { transaction } from './transaction.js';
+import { resolveLogger } from './utils/logger.utils.js';
 
 export { PgError } from './errors/pg.error.js';
 export { axonPg } from './plugin.js';
@@ -16,15 +17,19 @@ export class Db {
   #queries;
   /** @type {import('./types.js').TxClient} */
   #runner;
+  /** @type {any} */
+  #log;
 
   /**
    * @param {Pool} pool
    * @param {Map<string, string>} queries
+   * @param {any} [log] - logger instance
    */
-  constructor(pool, queries) {
+  constructor(pool, queries, log) {
     this.#pool = pool;
     this.#queries = queries;
-    this.#runner = createRunner(queries, pool);
+    this.#log = log;
+    this.#runner = createRunner(queries, pool, log);
   }
 
   /**
@@ -77,7 +82,7 @@ export class Db {
    * @param {(tx: import('./types.js').TxClient) => Promise<any>} fn
    */
   transaction(fn) {
-    return transaction(this.#pool, this.#queries, fn);
+    return transaction(this.#pool, this.#queries, fn, this.#log);
   }
 
   /**
@@ -104,14 +109,19 @@ export class Db {
  * @returns {Promise<Db>}
  */
 export async function createDb(opts) {
+  const log = opts.logger ?? await resolveLogger({ level: 'debug' });
+
   const poolConfig = typeof opts.connection === 'string'
     ? { connectionString: opts.connection, ...(opts.pool ?? {}) }
     : { ...opts.connection, ...(opts.pool ?? {}) };
 
-  const pool = new Pool(poolConfig);
+  log.info('creating database pool', { sqlDir: opts.sqlDir });
+
+  const pool = new Pool(poolConfig, log);
   await pool.connect();
 
   const queries = await loadQueries(opts.sqlDir);
+  log.info('loaded SQL queries', { count: queries.size });
 
-  return new Db(pool, queries);
+  return new Db(pool, queries, log);
 }
